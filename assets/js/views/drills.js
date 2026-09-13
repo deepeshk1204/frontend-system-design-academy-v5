@@ -1,6 +1,6 @@
 /* Every topic's open-ended drill in one place, with grading keys hidden. */
 
-import { allDrills, TRACK_BY_ID } from '../../../content/index.js';
+import { allDrills, TRACK_BY_ID } from '../../../content/index.js?v=7';
 import { frag, on, loading, shuffle } from '../dom.js';
 import { md } from '../md.js';
 
@@ -23,7 +23,7 @@ export default async function drills() {
     const list = filter === 'all' ? all : all.filter(d => d.track === filter);
     body.innerHTML = `
       <div class="filters">
-        ${['all', 'frontend', 'backend', 'ai'].map(v =>
+        ${['all', 'frontend', 'backend', 'ai', 'studios'].map(v =>
           `<button class="chip ${filter === v ? 'on' : ''}" data-value="${v}">${
             v === 'all' ? `All ${all.length}` : TRACK_BY_ID[v].name}</button>`).join('')}
         <button class="chip" data-value="__random">Shuffle</button>

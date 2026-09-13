@@ -1,4 +1,4 @@
-import { TRACK_BY_ID, trackTopics, LEVELS } from '../../../content/index.js';
+import { TRACK_BY_ID, trackTopics, LEVELS } from '../../../content/index.js?v=7';
 import * as store from '../store.js';
 import { frag, pct, fmtMinutes } from '../dom.js';
 import { mdBlock } from '../md.js';

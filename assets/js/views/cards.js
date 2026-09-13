@@ -1,6 +1,6 @@
 /* Flashcards with SM-2 style spaced repetition. */
 
-import { allCards, TRACK_BY_ID } from '../../../content/index.js';
+import { allCards, TRACK_BY_ID } from '../../../content/index.js?v=7';
 import * as store from '../store.js';
 import { frag, shuffle, relative, loading, plural } from '../dom.js';
 import { md } from '../md.js';
@@ -131,7 +131,7 @@ function filterBar(stats) {
     <div class="stat"><div class="v">${stats.total}</div><div class="k">Total</div></div>
   </div>
   <div class="filters">
-    ${['all', 'frontend', 'backend', 'ai'].map(v =>
+    ${['all', 'frontend', 'backend', 'ai', 'studios'].map(v =>
       `<button class="chip ${trackFilter === v ? 'on' : ''}" data-value="${v}">${
         v === 'all' ? 'All tracks' : TRACK_BY_ID[v].name}</button>`).join('')}
   </div>`;

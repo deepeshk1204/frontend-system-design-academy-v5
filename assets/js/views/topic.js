@@ -1,4 +1,4 @@
-import { loadTopic, neighbours, TRACK_BY_ID, LEVELS } from '../../../content/index.js';
+import { loadTopic, neighbours, TRACK_BY_ID, LEVELS } from '../../../content/index.js?v=7';
 import { renderBlocks, bindQuizzes, outline } from '../blocks.js';
 import * as store from '../store.js';
 import { frag, el } from '../dom.js';

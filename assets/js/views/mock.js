@@ -2,7 +2,7 @@
    self-grade rubric. Everything persists so sessions are comparable. */
 
 import { PHASES, TOTAL_MINUTES, RUBRIC, RUBRIC_DIMS, NINE_QUESTIONS } from '../../../content/practice/frameworks.js';
-import { TRACK_BY_ID } from '../../../content/index.js';
+import { TRACK_BY_ID } from '../../../content/index.js?v=7';
 import * as store from '../store.js';
 import { frag, on, shuffle, fmtDate, toast, download } from '../dom.js';
 import { md } from '../md.js';

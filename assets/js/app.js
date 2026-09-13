@@ -6,7 +6,7 @@
    Pages with no server rewrite rules.
    =========================================================== */
 
-import { TRACKS, trackTopics } from '../../content/index.js';
+import { TRACKS, trackTopics } from '../../content/index.js?v=7';
 import * as store from './store.js';
 import { hydrateDiagrams, retheme } from './diagram.js';
 import { openPalette } from './search.js';
@@ -227,7 +227,7 @@ function boot() {
 
   // Warm the content cache in the background so search is instant later.
   if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => import('../../content/index.js').then(m => m.loadAllTopics()));
+    requestIdleCallback(() => import('../../content/index.js?v=7').then(m => m.loadAllTopics()));
   }
 }
 

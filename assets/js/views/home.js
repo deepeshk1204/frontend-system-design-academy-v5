@@ -1,4 +1,4 @@
-import { TRACKS, TOPICS, trackTopics, allCards } from '../../../content/index.js';
+import { TRACKS, TOPICS, trackTopics, allCards } from '../../../content/index.js?v=7';
 import { FRAMEWORKS } from '../../../content/practice/frameworks.js';
 import * as store from '../store.js';
 import { frag, pct, fmtMinutes, plural } from '../dom.js';

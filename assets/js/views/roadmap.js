@@ -1,4 +1,4 @@
-import { TRACKS, TOPICS, trackTopics, LEVELS } from '../../../content/index.js';
+import { TRACKS, TOPICS, trackTopics, LEVELS } from '../../../content/index.js?v=7';
 import * as store from '../store.js';
 import { frag, fmtMinutes, pct } from '../dom.js';
 
@@ -26,9 +26,9 @@ export default async function roadmap() {
 
   return frag(`
     <h1>The roadmap</h1>
-    <p class="lead">Three tracks, ${TOPICS.length} topics, ${fmtMinutes(total)} of material. Each
-    track is ordered as a teaching sequence, so later topics assume the earlier ones. The tiers
-    tell you where the interview signal actually is.</p>
+    <p class="lead">Four tracks, ${TOPICS.length} topics, ${fmtMinutes(total)} of material. Concept
+    tracks are a teaching sequence. Studios are end-to-end interview questions that reuse those
+    concepts. The tiers tell you where the interview signal actually is.</p>
 
     <div class="grid c3">
       <div class="mini"><b>Foundation</b><p>Assumed knowledge. If you can already explain it, skim

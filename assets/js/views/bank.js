@@ -1,4 +1,4 @@
-import { TOPIC_BY_ID, TRACK_BY_ID } from '../../../content/index.js';
+import { TOPIC_BY_ID, TRACK_BY_ID } from '../../../content/index.js?v=7';
 import { FRAMEWORKS } from '../../../content/practice/frameworks.js';
 import * as store from '../store.js';
 import { frag, on, shuffle } from '../dom.js';

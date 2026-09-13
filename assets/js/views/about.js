@@ -1,4 +1,4 @@
-import { TOPICS, TRACKS } from '../../../content/index.js';
+import { TOPICS, TRACKS } from '../../../content/index.js?v=7';
 import { frag } from '../dom.js';
 
 export default async function about() {

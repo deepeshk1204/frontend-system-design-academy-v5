@@ -9,8 +9,9 @@
 import frontend from './frontend/index.js';
 import backend from './backend/index.js';
 import ai from './ai/index.js';
+import studios from './studios/index.js';
 
-export const TRACKS = [frontend, backend, ai];
+export const TRACKS = [frontend, backend, ai, studios];
 
 export const TRACK_BY_ID = Object.fromEntries(TRACKS.map(t => [t.id, t]));
 

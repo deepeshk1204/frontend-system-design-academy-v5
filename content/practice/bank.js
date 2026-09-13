@@ -303,7 +303,7 @@ export default [
       'Treats DRM as a checkbox rather than as a latency contributor on the startup critical path and a major source of real failures.',
       'Reports only aggregate rebuffer ratio, with no slicing by CDN, country or device class.'
     ],
-    topicIds: ['web-performance', 'cdn-and-edge', 'frontend-observability']
+    topicIds: ['web-performance', 'cdn-and-edge', 'frontend-observability', 'youtube-watch-page']
   },
   {
     id: 'ecommerce-core-web-vitals-global',
@@ -749,7 +749,7 @@ export default [
       'Interleaves results from four sources by raw score, so the list reshuffles as each source lands under the user\u2019s cursor.',
       'Builds it as a `div` with click handlers, with no combobox semantics or keyboard cursor announcements.'
     ],
-    topicIds: ['state-management', 'api-and-bff', 'web-performance']
+    topicIds: ['state-management', 'api-and-bff', 'web-performance', 'search-as-you-type']
   },
   {
     id: 'notification-inbox-frontend',
@@ -1037,7 +1037,7 @@ export default [
       'Writes an analytics row synchronously on the redirect path at 50k/s.',
       'Returns a 301 and then wonders why click analytics undercounts and edited links never update.'
     ],
-    topicIds: ['server-side-caching', 'sharding-and-partitioning', 'api-design-backend']
+    topicIds: ['server-side-caching', 'sharding-and-partitioning', 'api-design-backend', 'url-shortener']
   },
   {
     id: 'distributed-rate-limiter',
@@ -1337,7 +1337,7 @@ export default [
       'Pushes synchronously to all 5,000 group members and blocks the sender\u2019s acknowledgement on it.',
       'Has no per-conversation cursor, so reconnect and multi-device sync each need bespoke logic.'
     ],
-    topicIds: ['queues-and-streaming', 'scalability-and-capacity', 'data-modeling']
+    topicIds: ['queues-and-streaming', 'scalability-and-capacity', 'data-modeling', 'chat-system']
   },
   {
     id: 'ride-matching-geo',
@@ -1387,7 +1387,7 @@ export default [
       'Matches greedily per request and has no mechanism preventing the same driver being offered two rides.',
       'Treats a 50x local surge as a general scaling problem rather than a spatial hot-cell problem.'
     ],
-    topicIds: ['databases-and-indexes', 'scalability-and-capacity', 'resilience-patterns']
+    topicIds: ['databases-and-indexes', 'scalability-and-capacity', 'resilience-patterns', 'uber-matching']
   },
   {
     id: 'video-upload-transcoding-pipeline',
@@ -1491,7 +1491,7 @@ export default [
       'Attempts automatic three-way merge of arbitrary binary files instead of conflicted copies.',
       'Hard-deletes content chunks immediately, leaving no recovery path from a bad client release.'
     ],
-    topicIds: ['data-modeling', 'replication-and-consistency', 'sharding-and-partitioning']
+    topicIds: ['data-modeling', 'replication-and-consistency', 'sharding-and-partitioning', 'dropbox-sync']
   },
   {
     id: 'payment-system-with-ledger',
@@ -1595,7 +1595,7 @@ export default [
       'Implements holds with a TTL cache that has no durable record, so a crash silently releases or strands seats.',
       'Applies the high-contention architecture to all 4,000 daily events, massively over-engineering the common case.'
     ],
-    topicIds: ['transactions-and-isolation', 'consensus-and-coordination', 'scalability-and-capacity']
+    topicIds: ['transactions-and-isolation', 'consensus-and-coordination', 'scalability-and-capacity', 'ticketmaster']
   },
   {
     id: 'distributed-job-scheduler',
@@ -2349,7 +2349,7 @@ export default [
       'Rebuilds the entire index nightly rather than consuming change feeds, leaving permissions and content a day stale.',
       'Has no evaluation set, so changes to chunking or embeddings are shipped on vibes.'
     ],
-    topicIds: ['rag-architecture', 'advanced-retrieval', 'ai-security']
+    topicIds: ['rag-architecture', 'advanced-retrieval', 'ai-security', 'rag-product']
   },
   {
     id: 'coding-assistant-codebase-context',
@@ -2399,7 +2399,7 @@ export default [
       'Reindexes the whole repository on change rather than incrementally on the dependency subgraph.',
       'Ignores the constraint that some customers will not upload source, and designs a server-only index.'
     ],
-    topicIds: ['context-engineering', 'embeddings-and-vector-search', 'advanced-retrieval']
+    topicIds: ['context-engineering', 'embeddings-and-vector-search', 'advanced-retrieval', 'coding-agent']
   },
   {
     id: 'llm-inference-serving-platform',

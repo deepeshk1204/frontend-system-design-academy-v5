@@ -7,7 +7,7 @@
    them during idle time anyway).
    =========================================================== */
 
-import { TOPICS, loadAllTopics } from '../../content/index.js';
+import { TOPICS, loadAllTopics } from '../../content/index.js?v=7';
 import { plain } from './md.js';
 import { slug } from './blocks.js';
 
@@ -223,7 +223,7 @@ export async function openPalette(initial = '') {
 }
 
 function trackShort(track) {
-  return { frontend: 'fe', backend: 'be', ai: 'ai' }[track] || 'plain';
+  return { frontend: 'fe', backend: 'be', ai: 'ai', studios: 'st' }[track] || 'plain';
 }
 
 function highlight(text, q) {
