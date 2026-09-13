@@ -1,0 +1,29 @@
+export default {
+  id: 'backend',
+  short: 'be',
+  name: 'Backend & Distributed Systems',
+  tagline: 'State, failure and coordination -- the three things that make systems hard.',
+  blurb: `Frontend problems are mostly about latency and change management. Backend problems are
+about state: who owns it, how many copies exist, what happens when two of them disagree, and
+what you tell the user while you find out. This track builds from a single request through
+replication, consensus, streams and capacity planning.`,
+  topics: [
+    { id: 'request-lifecycle', title: 'Anatomy of a Backend Request', level: 'foundation', minutes: 18, summary: 'Load balancer, connection pools, threads vs event loops, and where latency actually goes.', tags: ['load balancing', 'concurrency', 'latency', 'pooling'], load: () => import('./request-lifecycle.js') },
+    { id: 'api-design-backend', title: 'API Design & Contracts', level: 'foundation', minutes: 20, summary: 'REST vs gRPC vs GraphQL, idempotency keys, pagination, versioning and error taxonomy.', tags: ['REST', 'gRPC', 'idempotency', 'versioning'], load: () => import('./api-design-backend.js') },
+    { id: 'databases-and-indexes', title: 'Databases, Indexes & Query Plans', level: 'core', minutes: 22, summary: 'B-trees, selectivity, covering indexes, and reading an EXPLAIN before you blame the ORM.', tags: ['indexes', 'B-tree', 'query plan', 'Postgres'], load: () => import('./databases-and-indexes.js') },
+    { id: 'transactions-and-isolation', title: 'Transactions & Isolation Levels', level: 'core', minutes: 20, summary: 'ACID in practice, MVCC, the anomalies each level permits, and locking under contention.', tags: ['ACID', 'MVCC', 'isolation', 'locking'], load: () => import('./transactions-and-isolation.js') },
+    { id: 'data-modeling', title: 'Data Modelling: SQL, NoSQL & Access Patterns', level: 'core', minutes: 19, summary: 'Choosing a store from access patterns, not from a conference talk. Normalisation economics.', tags: ['modelling', 'NoSQL', 'DynamoDB', 'schema'], load: () => import('./data-modeling.js') },
+    { id: 'server-side-caching', title: 'Server-Side Caching & Redis Patterns', level: 'core', minutes: 19, summary: 'Cache-aside, write-through, stampede protection, hot keys, and eviction under memory pressure.', tags: ['Redis', 'cache-aside', 'stampede', 'eviction'], load: () => import('./server-side-caching.js') },
+    { id: 'sharding-and-partitioning', title: 'Sharding & Partitioning', level: 'staff', minutes: 21, summary: 'Shard keys, consistent hashing, rebalancing, hot partitions and cross-shard queries.', tags: ['sharding', 'consistent hashing', 'rebalancing'], load: () => import('./sharding-and-partitioning.js') },
+    { id: 'replication-and-consistency', title: 'Replication & Consistency Models', level: 'staff', minutes: 22, summary: 'Leader-follower, quorums, CAP and PACELC, read-your-writes, and monotonic reads.', tags: ['replication', 'CAP', 'quorum', 'consistency'], load: () => import('./replication-and-consistency.js') },
+    { id: 'consensus-and-coordination', title: 'Consensus, Leases & Distributed Locks', level: 'staff', minutes: 20, summary: 'Raft in intuition, leader election, fencing tokens, and why Redlock is contested.', tags: ['Raft', 'consensus', 'locks', 'fencing'], load: () => import('./consensus-and-coordination.js') },
+    { id: 'queues-and-streaming', title: 'Queues & Event Streaming', level: 'core', minutes: 21, summary: 'Kafka partitions, delivery semantics, ordering guarantees, consumer lag and DLQs.', tags: ['Kafka', 'queues', 'exactly-once', 'DLQ'], load: () => import('./queues-and-streaming.js') },
+    { id: 'event-driven-architecture', title: 'Event-Driven Architecture, Sagas & CQRS', level: 'staff', minutes: 21, summary: 'Outbox pattern, distributed transactions without 2PC, projections and eventual consistency UX.', tags: ['saga', 'outbox', 'CQRS', 'event sourcing'], load: () => import('./event-driven-architecture.js') },
+    { id: 'scalability-and-capacity', title: 'Scalability & Capacity Planning', level: 'core', minutes: 20, summary: 'Back-of-envelope maths, Little\'s Law, queueing intuition, and autoscaling that does not oscillate.', tags: ['capacity', 'Little\'s Law', 'autoscaling', 'estimation'], load: () => import('./scalability-and-capacity.js') },
+    { id: 'resilience-patterns', title: 'Resilience: Timeouts, Retries & Backpressure', level: 'core', minutes: 20, summary: 'Timeout budgets, retry storms, circuit breakers, bulkheads, load shedding and graceful degradation.', tags: ['timeouts', 'retries', 'circuit breaker', 'backpressure'], load: () => import('./resilience-patterns.js') },
+    { id: 'rate-limiting-and-tenancy', title: 'Rate Limiting & Multi-Tenancy', level: 'staff', minutes: 18, summary: 'Token bucket vs sliding window, distributed counters, quotas, and noisy-neighbour isolation.', tags: ['rate limiting', 'quotas', 'multi-tenant', 'fairness'], load: () => import('./rate-limiting-and-tenancy.js') },
+    { id: 'backend-observability', title: 'Observability, SLOs & Error Budgets', level: 'core', minutes: 19, summary: 'Metrics, traces, logs, cardinality cost, percentiles that do not lie, and on-call you can sustain.', tags: ['SLO', 'tracing', 'metrics', 'on-call'], load: () => import('./backend-observability.js') },
+    { id: 'backend-security', title: 'Backend Security & Identity', level: 'core', minutes: 21, summary: 'OAuth2/OIDC flows, JWT pitfalls, session design, secrets, and authorisation that scales.', tags: ['OAuth', 'OIDC', 'JWT', 'authorisation'], load: () => import('./backend-security.js') },
+    { id: 'infra-and-deployment', title: 'Containers, Kubernetes & Safe Deploys', level: 'core', minutes: 20, summary: 'Scheduling, probes, resource limits, blue/green vs canary, and zero-downtime schema migration.', tags: ['Kubernetes', 'canary', 'migrations', 'containers'], load: () => import('./infra-and-deployment.js') }
+  ]
+};

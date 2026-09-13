@@ -1,0 +1,21 @@
+{
+  "name": "staff-engineer-academy",
+  "version": "6.0.0",
+  "private": true,
+  "description": "Static, zero-build study platform for Staff-level engineering interviews: frontend systems, distributed backends, AI engineering.",
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 8080",
+    "validate": "node tools/validate.mjs"
+  },
+  "keywords": [
+    "system-design",
+    "interview-preparation",
+    "staff-engineer",
+    "distributed-systems",
+    "ai-engineering"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

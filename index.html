@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Staff Engineer Academy — Frontend · Backend · AI system design</title>
+<meta name="description" content="A concept-first, practice-driven curriculum for Staff-level engineering interviews and upskilling across frontend systems, distributed backends and AI engineering.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#4f46e5">
+
+<meta property="og:title" content="Staff Engineer Academy">
+<meta property="og:description" content="Frontend · Backend · AI system design, with drills, flashcards and timed mock interviews.">
+<meta property="og:type" content="website">
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="./assets/css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%234f46e5'/><text y='72' x='50' font-size='62' font-family='system-ui' font-weight='bold' fill='white' text-anchor='middle'>S</text></svg>">
+
+<script>
+  /* Set the theme before first paint so there is no flash of the wrong one. */
+  try {
+    var s = JSON.parse(localStorage.getItem('sea.v2') || '{}');
+    document.documentElement.dataset.theme =
+      s.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  } catch (e) { /* default stays light */ }
+</script>
+</head>
+<body>
+<a class="skip" href="#view">Skip to content</a>
+
+<header class="top">
+  <div class="nav">
+    <button class="iconbtn menubtn" id="menu" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+
+    <a class="brand" href="#/">
+      <span class="logo" aria-hidden="true">S</span>
+      <span>Staff Engineer Academy<small>Frontend · Backend · AI</small></span>
+    </a>
+
+    <nav class="nav-links" id="navlinks" aria-label="Main"></nav>
+
+    <div class="nav-spacer"></div>
+
+    <button class="searchbtn" id="opensearch" aria-label="Search all content">
+      <span aria-hidden="true">⌕</span>
+      <span class="grow">Search concepts &amp; questions</span>
+      <kbd>⌘K</kbd>
+    </button>
+    <button class="iconbtn" id="theme" aria-label="Toggle colour theme" title="Toggle theme">◐</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="side" id="sidebar" aria-label="Curriculum"></aside>
+  <main class="main" id="view" tabindex="-1"></main>
+</div>
+
+<footer class="bot">
+  <span>Staff Engineer Academy · static, offline-capable, no tracking · progress stored in your browser only</span>
+  <span><a href="#/progress">Progress &amp; export</a> · <a href="#/about">About</a></span>
+</footer>
+
+<script type="module" src="./assets/js/app.js"></script>
+<noscript>
+  <div style="padding:40px;max-width:640px;margin:auto">
+    <h1>JavaScript required</h1>
+    <p>This site renders its curriculum from JavaScript modules in the browser so that it can be
+    hosted as pure static files with no build step. Please enable JavaScript.</p>
+  </div>
+</noscript>
+</body>
+</html>
