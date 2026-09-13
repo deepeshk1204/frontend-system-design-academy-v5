@@ -1,0 +1,31 @@
+name: Factual correction
+description: A mechanism, number, or recommendation is wrong
+title: '[correction] '
+labels: ['correction']
+body:
+  - type: input
+    id: topic
+    attributes:
+      label: Topic
+      placeholder: content/backend/transactions-and-isolation.js
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What is wrong
+    validations:
+      required: true
+  - type: textarea
+    id: instead
+    attributes:
+      label: What it should say
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Source
+      description: Paper, RFC, vendor docs, or a measurement
+    validations:
+      required: true

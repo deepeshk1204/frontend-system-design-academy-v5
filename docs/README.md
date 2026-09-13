@@ -1,0 +1,57 @@
+# Curriculum (markdown export)
+
+Generated from `content/` by `node tools/export-md.mjs`. Do not edit by hand.
+Interactive site: https://deepeshk1204.github.io/staff-engineer-academy
+
+- [Web Foundations: URL to Pixels](frontend/web-foundations.md) — foundation, ~16 min
+- [Browser & Rendering Pipeline](frontend/browser-rendering.md) — foundation, ~18 min
+- [HTTP, HTTP/2 & HTTP/3](frontend/http-and-networking.md) — foundation, ~16 min
+- [CDN & Edge Delivery](frontend/cdn-and-edge.md) — core, ~20 min
+- [The Caching Stack](frontend/caching-layers.md) — core, ~18 min
+- [CSR, SSR, SSG, ISR & Streaming](frontend/rendering-strategies.md) — core, ~20 min
+- [API Contracts & the BFF](frontend/api-and-bff.md) — core, ~20 min
+- [State: What Belongs Where](frontend/state-management.md) — core, ~17 min
+- [React at Scale](frontend/react-at-scale.md) — core, ~19 min
+- [Microfrontends](frontend/microfrontends.md) — staff, ~22 min
+- [Module Federation & Runtime Integration](frontend/module-federation.md) — staff, ~19 min
+- [Design Systems & Frontend Platform](frontend/design-systems.md) — staff, ~20 min
+- [Realtime: Polling, SSE & WebSockets](frontend/realtime-frontend.md) — core, ~18 min
+- [Offline-First & Sync](frontend/offline-and-sync.md) — staff, ~19 min
+- [Collaborative Editing: OT & CRDT](frontend/collaborative-editing.md) — staff, ~18 min
+- [Performance Engineering](frontend/web-performance.md) — core, ~21 min
+- [Frontend Security](frontend/frontend-security.md) — core, ~20 min
+- [Frontend Observability](frontend/frontend-observability.md) — core, ~17 min
+- [Deployment, Rollout & Migration](frontend/deployment-and-rollout.md) — staff, ~20 min
+- [Anatomy of a Backend Request](backend/request-lifecycle.md) — foundation, ~18 min
+- [API Design & Contracts](backend/api-design-backend.md) — foundation, ~20 min
+- [Databases, Indexes & Query Plans](backend/databases-and-indexes.md) — core, ~22 min
+- [Transactions & Isolation Levels](backend/transactions-and-isolation.md) — core, ~20 min
+- [Data Modelling: SQL, NoSQL & Access Patterns](backend/data-modeling.md) — core, ~19 min
+- [Server-Side Caching & Redis Patterns](backend/server-side-caching.md) — core, ~19 min
+- [Sharding & Partitioning](backend/sharding-and-partitioning.md) — staff, ~21 min
+- [Replication & Consistency Models](backend/replication-and-consistency.md) — staff, ~22 min
+- [Consensus, Leases & Distributed Locks](backend/consensus-and-coordination.md) — staff, ~20 min
+- [Queues & Event Streaming](backend/queues-and-streaming.md) — core, ~21 min
+- [Event-Driven Architecture, Sagas & CQRS](backend/event-driven-architecture.md) — staff, ~21 min
+- [Scalability & Capacity Planning](backend/scalability-and-capacity.md) — core, ~20 min
+- [Resilience: Timeouts, Retries & Backpressure](backend/resilience-patterns.md) — core, ~20 min
+- [Rate Limiting & Multi-Tenancy](backend/rate-limiting-and-tenancy.md) — staff, ~18 min
+- [Observability, SLOs & Error Budgets](backend/backend-observability.md) — core, ~19 min
+- [Backend Security & Identity](backend/backend-security.md) — core, ~21 min
+- [Containers, Kubernetes & Safe Deploys](backend/infra-and-deployment.md) — core, ~20 min
+- [LLM Fundamentals for Engineers](ai/llm-fundamentals.md) — foundation, ~19 min
+- [Prompting & Structured Output](ai/prompting-and-structured-output.md) — foundation, ~18 min
+- [Embeddings & Vector Search](ai/embeddings-and-vector-search.md) — core, ~20 min
+- [RAG: The Reference Architecture](ai/rag-architecture.md) — core, ~22 min
+- [Advanced Retrieval](ai/advanced-retrieval.md) — staff, ~20 min
+- [Context Engineering](ai/context-engineering.md) — staff, ~19 min
+- [Tool Calling & Typed Actions](ai/tool-calling.md) — core, ~19 min
+- [Agent Architecture](ai/agent-architecture.md) — staff, ~22 min
+- [Evaluation & Quality Regression](ai/evaluation.md) — staff, ~21 min
+- [AI Observability & Tracing](ai/ai-observability.md) — core, ~18 min
+- [Inference Serving & Performance](ai/inference-serving.md) — staff, ~21 min
+- [Model Routing, Caching & Cost Control](ai/model-routing-and-cost.md) — staff, ~19 min
+- [Fine-Tuning, LoRA & Distillation](ai/finetuning-and-adaptation.md) — staff, ~19 min
+- [AI Security & Guardrails](ai/ai-security.md) — staff, ~21 min
+- [AI Product & UX Architecture](ai/ai-product-ux.md) — core, ~18 min
+- [Capstone: An AI Platform](ai/ai-platform-architecture.md) — staff, ~24 min

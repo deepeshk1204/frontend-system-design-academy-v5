@@ -6,7 +6,10 @@
   "type": "module",
   "scripts": {
     "dev": "python3 -m http.server 8080",
-    "validate": "node tools/validate.mjs"
+    "validate": "node tools/validate.mjs",
+    "export:md": "node tools/export-md.mjs",
+    "export:anki": "node tools/export-anki.mjs",
+    "export": "node tools/export-md.mjs && node tools/export-anki.mjs"
   },
   "keywords": [
     "system-design",

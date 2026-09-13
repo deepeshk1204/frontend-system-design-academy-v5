@@ -277,6 +277,7 @@ function renderGrade(view, state, q, elapsed) {
         <div><b id="score">0 / ${RUBRIC.length}</b>
           <span class="small muted" id="verdict"> — tick what applies</span></div>
         <div class="row">
+          <button class="btn ghost sm" id="copymd">Copy scorecard</button>
           <button class="btn ghost sm" id="exportmd">Export as markdown</button>
           <a class="btn sm" href="#/practice/mock">Done</a>
         </div>
@@ -308,17 +309,29 @@ function renderGrade(view, state, q, elapsed) {
     store.saveMock(state);
   });
 
-  area.querySelector('#exportmd').addEventListener('click', () => {
+  const scorecard = () => {
     const ticked = RUBRIC.filter(r => state.rubric[r.id]);
     const missed = RUBRIC.filter(r => !state.rubric[r.id]);
-    const out = `# Mock interview — ${q.title}\n\n`
+    return `# Mock interview — ${q.title}\n\n`
       + `- Date: ${new Date(state.startedAt).toISOString()}\n`
       + `- Duration: ${Math.round(elapsed / 60)} min\n`
       + `- Score: ${ticked.length}/${RUBRIC.length}\n\n`
       + `## Prompt\n\n${q.prompt}\n\n## My notes\n\n${state.notes || '_(empty)_'}\n\n`
       + `## Did\n\n${ticked.map(r => `- [x] ${r.text}`).join('\n') || '_none_'}\n\n`
       + `## Missed\n\n${missed.map(r => `- [ ] ${r.text}`).join('\n') || '_none_'}\n`;
-    download(`mock-${q.id}-${new Date(state.startedAt).toISOString().slice(0, 10)}.md`, out);
+  };
+
+  area.querySelector('#copymd').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(scorecard());
+      area.querySelector('#copymd').textContent = 'Copied';
+    } catch {
+      area.querySelector('#copymd').textContent = 'Copy failed';
+    }
+  });
+
+  area.querySelector('#exportmd').addEventListener('click', () => {
+    download(`mock-${q.id}-${new Date(state.startedAt).toISOString().slice(0, 10)}.md`, scorecard());
   });
 
   area.querySelector('#grade').scrollIntoView({ behavior: 'smooth' });
