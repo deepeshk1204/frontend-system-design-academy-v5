@@ -12,17 +12,15 @@ a log line and waiting for a release, you have monitoring.` },
     { t: 'h', text: 'Why it exists' },
     { t: 'prose',
       md: `A monolith on one box could be debugged by attaching a profiler and tailing a log. Twenty services across three
-hundred pods cannot, for three reasons that compound.
+hundred pods cannot, for three reasons that compound. The failure is usually **partial**: 3% of requests fail, all
+of them for users whose session landed on one of forty pods, and every aggregate dashboard shows green. It is
+usually **emergent**: no single service is broken, but a retry policy in service A amplifies a 200 ms latency
+increase in service D into a saturated connection pool in service B. And it is usually **not reproducible**,
+depending on a tenant's data shape, a cache state and a concurrency level you cannot recreate locally.
 
-The failure is usually **partial**: 3% of requests fail, all of them for users whose session landed on one of forty
-pods, and every aggregate dashboard shows green. It is usually **emergent**: no single service is broken, but a
-retry policy in service A amplifies a 200 ms latency increase in service D into a saturated connection pool in
-service B. And it is usually **not reproducible**: it depends on a specific tenant's data shape, a cache state, and
-a concurrency level you cannot recreate locally.
-
-So you instrument for the questions you cannot anticipate. The cost of this is not zero and it is worth stating up
-front: a serious observability stack routinely runs at 5-15% of total infra spend, and at scale the telemetry bill
-can exceed the compute bill for the service being observed.` },
+So you instrument for the questions you cannot anticipate. The cost is not zero and it is worth stating up front: a
+serious observability stack routinely runs at 5-15% of total infra spend, and at scale the telemetry bill can exceed
+the compute bill for the service being observed.` },
 
     { t: 'h', text: 'The pillars, and what each is actually for' },
     { t: 'diagram',
@@ -68,39 +66,35 @@ because adding bucket counts is a valid operation.
 That last property is the whole argument. Buckets are additive; quantiles are not.` },
     { t: 'h', text: 'Why you cannot average percentiles' },
     { t: 'prose',
-      md: `This is the single most common statistical error in production engineering, and being able to explain it precisely
-is a reliable senior signal.
+      md: `This is the single most common statistical error in production engineering, and explaining it precisely is a
+reliable senior signal. A percentile is an *order statistic*: p99 means "the value below which 99% of observations
+fall". Averaging two order statistics from two different populations produces a number that is not a percentile of
+anything, and has no interpretation.
 
-A percentile is an *order statistic*: p99 means "the value below which 99% of observations fall". Averaging two
-order statistics from two different populations produces a number that is not a percentile of anything. It has no
-interpretation.
-
-The concrete failure: instance A serves 10,000 requests with p99 = 50 ms. Instance B serves 10 requests with p99 =
+The concrete failure: instance A serves 10,000 requests with p99 = 50 ms, instance B serves 10 requests with p99 =
 4,000 ms because it is thrashing on a full disk. The mean of the two p99s is 2,025 ms, which alarms you about a
-problem affecting 0.1% of traffic. Now reverse it: nine healthy instances at p99 = 20 ms and one broken instance at
-p99 = 5,000 ms averages to 518 ms, which looks like a moderate general slowdown rather than one dead pod. Both
-readings are wrong, in opposite directions, and neither tells you what you need.` },
+problem affecting 0.1% of traffic. Now reverse it: nine healthy instances at 20 ms and one broken one at 5,000 ms
+averages to 518 ms, which reads as a moderate general slowdown rather than one dead pod. Both readings are wrong,
+in opposite directions, and neither tells you what you need.` },
     { t: 'code',
       lang: 'promql',
       title: 'The correct way: aggregate buckets first, then compute the quantile once',
       code: `# WRONG -- averaging pre-computed per-instance quantiles. Meaningless number.
 avg(http_request_duration_p99)
 
-# RIGHT -- sum the raw bucket counters across instances, then interpolate once
-# over the whole population.
-histogram_quantile(
-  0.99,
-  sum by (le, route) (rate(http_request_duration_seconds_bucket[5m]))
-)
+# RIGHT -- sum raw bucket counters across instances, interpolate once over the
+# whole population. Bucket counts are additive; quantiles are not.
+histogram_quantile(0.99,
+  sum by (le, route) (rate(http_request_duration_seconds_bucket[5m])))
 
-# The SLO question is better asked directly as a ratio, with no quantile at all.
-# "What fraction of requests were faster than 300 ms?" -- this is exact,
-# not interpolated, and it is what an error budget is computed from.
+# Better still for an SLO: ask the ratio directly, with no quantile at all.
+# "What fraction was faster than 300 ms?" is exact rather than interpolated,
+# and it is what an error budget is computed from.
   sum(rate(http_request_duration_seconds_bucket{le="0.3"}[5m]))
 / sum(rate(http_request_duration_seconds_count[5m]))
 
 # Native histograms (Prometheus 2.40+) replace fixed \`le\` buckets with
-# exponential ones, giving ~1% relative error at a fraction of the series count.` },
+# exponential ones: ~1% relative error at a fraction of the series count.` },
     { t: 'note',
       tone: 'info',
       title: 'The bucket-boundary corollary',
@@ -113,16 +107,15 @@ right.` },
     { t: 'h', text: 'Cardinality is the bill' },
     { t: 'prose',
       md: `A time series is uniquely identified by its metric name plus the full set of label values. The number of series is
-the *product* of the distinct values of every label, and it multiplies faster than anyone's intuition.
-
-Start with \`http_requests_total{method, status, route}\`: 5 methods x 12 statuses x 40 routes = 2,400 series.
-Reasonable. Add \`pod\` with 200 pods and you are at 480,000. Add \`customer_id\` with 5,000 tenants and you are at
-2.4 billion series, which no time-series database will survive -- Prometheus will OOM long before that, typically
-somewhere between 2 and 10 million active series on a well-resourced instance.
+the *product* of the distinct values of every label, and it multiplies faster than anyone's intuition. Start with
+\`http_requests_total{method, status, route}\`: 5 methods x 12 statuses x 40 routes = 2,400 series. Reasonable. Add
+\`pod\` with 200 pods and you are at 480,000. Add \`customer_id\` with 5,000 tenants and you are at 2.4 billion,
+which no time-series database survives -- Prometheus OOMs long before, typically between 2 and 10 million active
+series on a well-resourced instance.
 
 The unbounded labels that cause real incidents are always the same few: \`user_id\`, \`request_id\`, \`session_id\`,
-\`trace_id\`, raw \`url\` (with path parameters and query strings), \`error_message\` (stack traces as label
-values), and email addresses. Every one of these is effectively infinite cardinality.` },
+\`trace_id\`, raw \`url\` with path parameters and query strings, \`error_message\` with stack traces as label
+values, and email addresses. Every one is effectively infinite cardinality.` },
     { t: 'numbers',
       title: 'Label explosion, worked',
       items: [
@@ -147,11 +140,9 @@ known-bad labels at ingest, so a single bad deploy cannot double your bill befor
       md: `OpenTelemetry is the vendor-neutral standard for producing telemetry, and its main practical value is that
 instrumentation becomes a one-time cost rather than something you redo when you change vendors. Three components:
 the **SDK** in your process creates spans and metrics; the **Collector** runs as a sidecar or daemonset and does
-batching, filtering, tail sampling and enrichment; **exporters** ship to one or more backends.
-
-Route everything through the Collector rather than exporting directly from applications. It means you can add a
-second backend, change sampling policy, or scrub a leaked PII attribute by editing Collector config rather than by
-redeploying forty services.
+batching, filtering, tail sampling and enrichment; **exporters** ship to one or more backends. Route everything
+through the Collector rather than exporting directly from applications -- it means you can add a second backend,
+change sampling policy, or scrub a leaked PII attribute by editing config rather than redeploying forty services.
 
 **Context propagation** is what makes a trace a trace. Each service receives a \`traceparent\` header, creates a
 child span, and passes it on. The W3C format is compact and worth recognising on sight.` },
@@ -169,33 +160,25 @@ processors:
   tail_sampling:
     decision_wait: 10s
     policies:
-      - name: keep-all-errors
-        type: status_code
-        status_code: { status_codes: [ERROR] }
-      - name: keep-slow
-        type: latency
-        latency: { threshold_ms: 1000 }
-      - name: always-keep-checkout
-        type: string_attribute
-        string_attribute: { key: http.route, values: ["/checkout"] }
-      - name: baseline
-        type: probabilistic
-        probabilistic: { sampling_percentage: 1 }
+      - { name: keep-errors, type: status_code,
+          status_code: { status_codes: [ERROR] } }
+      - { name: keep-slow, type: latency, latency: { threshold_ms: 1000 } }
+      - { name: always-checkout, type: string_attribute,
+          string_attribute: { key: http.route, values: ["/checkout"] } }
+      - { name: baseline, type: probabilistic,
+          probabilistic: { sampling_percentage: 1 } }
 
-  # Cardinality guard: strip attributes that would explode your metrics.
-  attributes/scrub:
+  attributes/scrub:            # cardinality and PII guard
     actions:
       - { key: user.email, action: delete }
       - { key: http.url, action: delete }      # keep http.route instead` },
     { t: 'prose',
-      md: `**Head sampling** decides at the root span, before you know anything: keep 1% of traces, drop the rest. It is cheap,
-it is stateless, and it throws away almost every error and slow request, because those are rare by definition.
-
-**Tail sampling** buffers spans for a few seconds until the trace is complete, then decides. That lets you keep 100%
-of errors and 100% of requests over 1 second while keeping 1% of the boring successes -- which is what you actually
-want, since a 1% sample of a 0.1% error rate gives you almost no error traces to look at. The cost is memory in the
-Collector and the requirement that all spans of a trace reach the *same* Collector instance, which means
-load-balancing by trace id.
+      md: `**Head sampling** decides at the root span, before you know anything: keep 1% of traces, drop the rest. It is
+cheap and stateless, and it throws away almost every error and slow request, because those are rare by definition.
+**Tail sampling** buffers spans for a few seconds until the trace is complete, then decides -- so you keep 100% of
+errors and 100% of requests over a second while keeping 1% of the boring successes. That is what you actually want,
+since a 1% sample of a 0.1% error rate leaves you almost no error traces. The cost is memory in the Collector and
+the requirement that all spans of a trace reach the *same* Collector instance, which means load-balancing by trace id.
 
 A detail with outsized value: propagate the trace id into your **logs** and into your **message headers**. Logs with
 a trace id let you pivot from a span to the exact log lines for that request. Message headers let a trace survive
@@ -203,22 +186,21 @@ the async hop through Kafka, without which event-driven debugging is reading tim
 
     { t: 'h', text: 'Structured logging that survives production' },
     { t: 'prose',
-      md: `Log JSON, one object per event, with a stable field vocabulary. String-interpolated logs like \`"user " + id + "
-failed: " + err\` are unqueryable at volume -- you cannot ask "all failures for this tenant in the last hour" of a
-text blob without a regex that breaks when the message wording changes.
+      md: `Log JSON, one object per event, with a stable field vocabulary. String-interpolated logs are unqueryable at volume
+-- you cannot ask "all failures for this tenant in the last hour" of a text blob without a regex that breaks when
+someone rewords the message.
 
-Log levels only work if they mean something operationally. \`ERROR\` should mean "a human should look at this",
-which implies it must be rare enough that someone actually does. Most codebases use \`ERROR\` for expected
-conditions -- a validation failure, an upstream 404 -- and then nobody can distinguish real problems from noise, so
-the level becomes decorative. A useful rule: \`WARN\` for things the system recovered from, \`ERROR\` for things it
-did not, and neither for the user's own mistakes.
+Log levels only work if they mean something operationally. \`ERROR\` should mean "a human should look at this", which
+requires it to be rare enough that someone actually does. Most codebases use \`ERROR\` for expected conditions -- a
+validation failure, an upstream 404 -- after which nobody can separate real problems from noise and the level becomes
+decorative. A useful rule: \`WARN\` for what the system recovered from, \`ERROR\` for what it did not, and neither for
+the user's own mistakes.
 
-Two more things that matter. **Sample your high-volume logs**: keep 100% of errors and 1-5% of successful request
-logs, because a 50 KB log line at 10,000 requests per second is 500 MB per second and your logging bill will exceed
-your compute bill. And **never log secrets or PII** -- Authorization headers, full request bodies, card numbers,
-email addresses -- because logs are replicated to more places, with weaker access controls and longer retention,
-than any database you own. A deny-list of field names enforced in the logging library and again in the Collector is
-the control that actually works.` },
+Two more things matter. **Sample high-volume logs**: keep 100% of errors and 1-5% of successful request logs, because
+a 50 KB line at 10,000 requests per second is 500 MB per second and your logging bill will exceed your compute bill.
+And **never log secrets or PII** -- Authorization headers, request bodies, card numbers, email addresses -- because
+logs are replicated to more places, with weaker access controls and longer retention, than any database you own. A
+field deny-list enforced in the logging library and again in the Collector is the control that actually works.` },
     { t: 'code',
       lang: 'json',
       title: 'A log line you can query in six months',
@@ -449,8 +431,8 @@ queueing maths in **Scalability & Capacity Planning**. Replication lag in bytes 
         'Replaces cause-based alerts with a small set of SLO burn-rate alerts per user-facing journey, then deletes the cause-based ones rather than keeping both.',
         'Defines SLIs concretely as good-events-over-valid-events per critical route, agrees windows, and gets an error-budget policy signed off by the product owner in advance.',
         'Implements multi-window multi-burn-rate (14.4x/1h with 5m confirmation to page, 6x/6h to page, 3x/1d to ticket) rather than static thresholds.',
-        'Attacks cost by cardinality audit first -- finds the unbounded labels, normalises route labels, adds `metric_relabel_configs` deny-lists -- then log sampling, keeping 100% of errors.',
-        'Refuses to cut error traces or error logs, and moves to tail sampling so trace spend buys errors and slow requests instead of a random 1%.',
+        'Attacks cost by cardinality audit first -- finds the unbounded labels, normalises route labels, adds `metric_relabel_configs` deny-lists -- then log sampling, while refusing to cut error traces or error logs.',
+        'Moves to tail sampling so trace spend buys errors and slow requests rather than a random 1%.',
         'Attacks MTTR through trace-id propagation into logs and message headers, exemplar links from metrics to traces, and a runbook on every remaining alert -- not more dashboards.',
         'Names day-90 success metrics: pages per shift, fraction of pages actionable, MTTR, telemetry spend as a percentage of compute, and active series count.'
       ],
@@ -458,8 +440,7 @@ queueing maths in **Scalability & Capacity Planning**. Replication lag in bytes 
         'Proposes building more dashboards or migrating to a different vendor as the primary fix.',
         'Reduces cost by cutting retention across the board, including error data.',
         'Adds alerts rather than deleting them, or keeps cause-based alerts alongside new SLO alerts.',
-        'Defines SLOs with no error-budget policy and no product-owner agreement.',
-        'No mention of cardinality as the cost driver.',
+        'No mention of cardinality as the cost driver, or of an error-budget policy with product-owner agreement.',
         'Treats 11 pages a night as a staffing problem rather than a signal-quality problem.'
       ] },
     {
@@ -483,8 +464,7 @@ queueing maths in **Scalability & Capacity Planning**. Replication lag in bytes 
         'Restarts pods and calls it resolved without identifying a cause.',
         'Trusts the aggregate p99 and never breaks it down by pod, route or tenant.',
         'Does not notice that 1% head sampling makes the traces useless for this investigation.',
-        'Assumes a code change despite there being no deploy.',
-        'Proposes scaling up as the diagnosis rather than as a mitigation.',
+        'Assumes a code change despite there being no deploy, or proposes scaling up as the diagnosis rather than a mitigation.',
         'No follow-up changes, so the next occurrence takes just as long.'
       ]
     }
