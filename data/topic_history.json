@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "title": "Designing Deterministic AI Agent Loops: Architecture, Verification, and Replay State Machines",
+    "tags": [
+      "ai",
+      "typescript",
+      "architecture",
+      "systemdesign"
+    ],
+    "url": "https://dev.to/staffsystems-lab/designing-deterministic-ai-agent-loops-architecture-verification-and-replay-state-machines-42jf",
+    "devto_id": 4654524
+  }
+]
