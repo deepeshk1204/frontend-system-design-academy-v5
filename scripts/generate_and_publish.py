@@ -1,10 +1,13 @@
 import json
 import os
+import re
 import sys
+import time
 from pathlib import Path
 
 import requests
 from google import genai
+from google.genai import errors
 
 
 # ============================================================
@@ -14,12 +17,25 @@ from google import genai
 DEVTO_API = "https://dev.to/api"
 DEVTO_ARTICLES = f"{DEVTO_API}/articles"
 
-MODEL = "gemini-3.8-flash"
+# Primary + fallback models.
+# If the primary model is temporarily unavailable (503),
+# the script retries before falling back.
+GEMINI_MODELS = [
+    "gemini-3.8-flash",
+    "gemini-3.6-flash",
+]
 
 HISTORY_FILE = Path("data/topic_history.json")
 
-MAX_TRENDING_ARTICLES = 30
+MAX_TRENDING_ARTICLES = 17
 MAX_HISTORY = 100
+MAX_HISTORY_FOR_PROMPT = 30
+
+MAX_RETRIES_PER_MODEL = 3
+
+MIN_ARTICLE_LENGTH = 1000
+TARGET_ARTICLE_MIN = 1500
+TARGET_ARTICLE_MAX = 2500
 
 
 # ============================================================
@@ -40,7 +56,7 @@ if not GEMINI_API_KEY:
 
 
 # ============================================================
-# GEMINI
+# GEMINI CLIENT
 # ============================================================
 
 client = genai.Client(
@@ -53,27 +69,51 @@ client = genai.Client(
 # ============================================================
 
 def load_history():
+    """
+    Load previously published topics.
+
+    If the file is missing, empty, malformed, or not a JSON
+    array, start with an empty history rather than failing.
+    """
 
     if not HISTORY_FILE.exists():
+        print("Topic history does not exist. Starting fresh.")
         return []
 
     try:
-        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        raw = HISTORY_FILE.read_text(encoding="utf-8").strip()
 
-        if isinstance(data, list):
-            return data
+        if not raw:
+            print("Topic history is empty. Starting fresh.")
+            return []
 
-        print("Topic history is not a JSON array. Starting fresh.")
-        return []
+        data = json.loads(raw)
 
-    except (json.JSONDecodeError, OSError) as e:
-        print(f"Could not read topic history: {e}")
+        if not isinstance(data, list):
+            print(
+                "Topic history is not a JSON array. "
+                "Starting fresh."
+            )
+            return []
+
+        print(
+            f"Loaded {len(data)} previous published topics."
+        )
+
+        return data
+
+    except (json.JSONDecodeError, OSError) as exc:
+        print(
+            f"Could not read topic history: {exc}"
+        )
         print("Starting with empty topic history.")
         return []
 
 
 def save_history(history):
+    """
+    Persist topic history as a real JSON array.
+    """
 
     HISTORY_FILE.parent.mkdir(
         parents=True,
@@ -82,18 +122,14 @@ def save_history(history):
 
     history = history[-MAX_HISTORY:]
 
-    with open(
-        HISTORY_FILE,
-        "w",
-        encoding="utf-8"
-    ) as f:
-
-        json.dump(
+    HISTORY_FILE.write_text(
+        json.dumps(
             history,
-            f,
             indent=2,
             ensure_ascii=False
-        )
+        ) + "\n",
+        encoding="utf-8"
+    )
 
 
 # ============================================================
@@ -101,6 +137,9 @@ def save_history(history):
 # ============================================================
 
 def get_trending_articles():
+    """
+    Fetch currently rising DEV.to articles.
+    """
 
     print("Fetching DEV.to rising articles...")
 
@@ -128,41 +167,47 @@ def get_trending_articles():
 
 
 # ============================================================
-# PREPARE TREND DATA
+# TREND PREPARATION
 # ============================================================
 
 def prepare_topics(articles):
+    """
+    Reduce DEV.to API response to the fields useful for topic
+    analysis.
+    """
 
     topics = []
 
     for article in articles:
-
-        topics.append({
-            "title": article.get("title"),
-            "description": article.get("description"),
-            "tags": article.get("tag_list", []),
-            "reactions": article.get(
-                "positive_reactions_count",
-                0
-            ),
-            "comments": article.get(
-                "comments_count",
-                0
-            ),
-            "published_at": article.get(
-                "published_at"
-            ),
-        })
+        topics.append(
+            {
+                "title": article.get("title"),
+                "description": article.get("description"),
+                "tags": article.get("tag_list", []),
+                "reactions": article.get(
+                    "positive_reactions_count",
+                    0
+                ),
+                "comments": article.get(
+                    "comments_count",
+                    0
+                ),
+                "published_at": article.get(
+                    "published_at"
+                ),
+            }
+        )
 
     return topics
 
 
 # ============================================================
-# AI GENERATION
+# PROMPT
 # ============================================================
 
-def generate_article(topics, history):
+def build_prompt(topics, history):
 
+    # Keep prompt reasonably small.
     topic_text = json.dumps(
         topics,
         indent=2,
@@ -170,16 +215,16 @@ def generate_article(topics, history):
     )
 
     history_text = json.dumps(
-        history[-30:],
+        history[-MAX_HISTORY_FOR_PROMPT:],
         indent=2,
         ensure_ascii=False
     )
 
-    prompt = f"""
+    return f"""
 You are an experienced Staff Software Engineer and
 technical writer creating an original article for DEV.to.
 
-Your expertise includes:
+You have strong knowledge of:
 
 - React
 - JavaScript
@@ -193,29 +238,33 @@ Your expertise includes:
 - AI
 - LLMs
 - AI Agents
+- MCP
 - Developer Productivity
 - Software Architecture
 
-Your job is to analyze CURRENT DEV.to rising articles and
-identify a strong topic/theme.
+Your task is to analyze CURRENT DEV.to rising articles,
+identify the strongest relevant trend, and create ONE
+original article based on that trend.
 
-Then create an ORIGINAL article around that theme.
+IMPORTANT ORIGINALITY RULES:
 
-IMPORTANT:
+Do NOT copy or closely rewrite any existing article.
 
-Do NOT copy or closely rewrite any existing DEV.to article.
+Do NOT reuse:
 
-Do NOT reuse their:
-
-- title
-- wording
-- structure
+- another article's title
+- sentences
+- paragraph structure
 - examples
 - code
 - conclusions
 
-Instead, identify the underlying trend and create a
-different, substantially more useful engineering perspective.
+Instead:
+
+1. Identify the underlying trend.
+2. Choose a distinct engineering angle.
+3. Add substantially different technical value.
+4. Explain the subject deeply enough to teach an engineer.
 
 ============================================================
 CURRENT DEV.TO RISING ARTICLES
@@ -224,30 +273,30 @@ CURRENT DEV.TO RISING ARTICLES
 {topic_text}
 
 ============================================================
-PREVIOUS TOPICS
+PREVIOUSLY PUBLISHED TOPICS
 ============================================================
 
-These are topics already published by this automation.
-
-Avoid repeating them unless there is a genuinely new angle.
+Avoid repeating these topics unless there is clearly a
+new and substantially different angle.
 
 {history_text}
 
 ============================================================
-CONTENT STRATEGY
+CONTENT PREFERENCES
 ============================================================
 
-Prefer topics that are:
+Prioritize topics that are:
 
 - currently trending
-- useful to software engineers
+- technically useful
 - practical
-- technically deep
-- relevant to Staff+ engineers
+- relevant to software engineers
+- useful to experienced engineers
+- useful to Staff+ engineers
 - relevant to modern frontend/backend engineering
 - relevant to AI engineering
 
-Examples:
+Potential areas include:
 
 AI coding agents
 AI-assisted development
@@ -266,58 +315,65 @@ Developer productivity
 Software architecture
 Engineering leadership
 
+Do not force one of these topics if the current DEV.to
+trend points somewhere else.
+
 ============================================================
 ARTICLE REQUIREMENTS
 ============================================================
 
-Write approximately 1500-2500 words.
+Target approximately {TARGET_ARTICLE_MIN}-{TARGET_ARTICLE_MAX}
+words.
 
-The article should contain:
+The article should include:
 
-1. Strong title
-
-2. A compelling opening
-
+1. Strong, specific title
+2. Compelling opening
 3. The engineering problem
-
 4. Clear explanation of the concept
-
 5. How it works
-
 6. Practical examples
-
-7. Code examples where useful
-
-8. Mermaid architecture diagrams where useful
-
+7. Code examples when useful
+8. Mermaid diagrams when useful
 9. Real-world trade-offs
-
 10. Common mistakes
-
 11. When to use it
-
 12. When NOT to use it
-
 13. Practical recommendations
-
 14. Strong conclusion
 
-Avoid generic filler.
+Avoid generic AI-generated filler.
 
-The article should feel like it was written by a
-senior engineer explaining something they deeply understand.
+Prefer:
+
+- concrete examples
+- engineering reasoning
+- architectural decisions
+- trade-offs
+- implementation details
+- diagrams
+- code
+- practical recommendations
+
+The article should sound like a thoughtful senior engineer
+teaching another engineer.
 
 Do NOT claim personal experience that was not provided.
 
-Do NOT say:
+Do NOT write things such as:
 
 "As a Staff Engineer, I..."
 
-unless it is genuinely necessary.
+unless the statement is actually supported by provided
+information.
 
-Do NOT mention that the article was generated by AI.
+Do NOT mention:
 
-Do NOT reference the source DEV.to articles.
+- AI generated content
+- this prompt
+- the automation
+- the DEV.to source articles
+- content generation
 
 Do NOT use clickbait.
 
@@ -333,7 +389,11 @@ tags
 
 Use 3-5 relevant DEV.to tags.
 
-Tags should be lowercase and contain only letters/numbers.
+Tags must:
+
+- be lowercase
+- contain only letters/numbers
+- be suitable for DEV.to
 
 Examples:
 
@@ -344,12 +404,14 @@ systemdesign
 webdev
 
 ============================================================
-OUTPUT
+OUTPUT FORMAT
 ============================================================
 
 Return ONLY valid JSON.
 
-Use exactly this structure:
+Do not wrap the JSON in Markdown fences.
+
+Use EXACTLY this structure:
 
 {{
   "title": "...",
@@ -359,92 +421,328 @@ Use exactly this structure:
 }}
 """
 
-    print("Generating article with Gemini...")
 
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=prompt
-    )
+# ============================================================
+# GEMINI RETRY / FALLBACK
+# ============================================================
 
-    text = response.text.strip()
+def generate_with_retry(prompt):
+    """
+    Generate content with retries and model fallback.
 
-    # Remove accidental markdown JSON fencing
-    if text.startswith("```json"):
-        text = text[7:]
+    503 errors are treated as temporary availability failures.
+    """
 
-    if text.endswith("```"):
-        text = text[:-3]
+    last_error = None
+
+    for model in GEMINI_MODELS:
+
+        for attempt in range(1, MAX_RETRIES_PER_MODEL + 1):
+
+            try:
+                print(
+                    f"Calling Gemini: "
+                    f"{model} "
+                    f"(attempt {attempt}/{MAX_RETRIES_PER_MODEL})"
+                )
+
+                response = client.models.generate_content(
+                    model=model,
+                    contents=prompt
+                )
+
+                if not response or not response.text:
+                    raise RuntimeError(
+                        "Gemini returned an empty response."
+                    )
+
+                print(
+                    f"Gemini generation succeeded using {model}."
+                )
+
+                return response.text
+
+            except errors.ServerError as exc:
+                last_error = exc
+
+                print(
+                    f"Gemini returned server error "
+                    f"{getattr(exc, 'code', 'unknown')}: {exc}"
+                )
+
+                if attempt < MAX_RETRIES_PER_MODEL:
+
+                    # 10s, 20s, 40s
+                    delay = 10 * (2 ** (attempt - 1))
+
+                    print(
+                        f"Retrying in {delay} seconds..."
+                    )
+
+                    time.sleep(delay)
+
+            except errors.APIError as exc:
+                last_error = exc
+
+                status_code = getattr(
+                    exc,
+                    "code",
+                    None
+                )
+
+                print(
+                    f"Gemini API error "
+                    f"{status_code}: {exc}"
+                )
+
+                # Only retry likely temporary errors.
+                retryable = status_code in {
+                    429,
+                    500,
+                    502,
+                    503,
+                    504
+                }
+
+                if retryable and attempt < MAX_RETRIES_PER_MODEL:
+
+                    delay = 10 * (2 ** (attempt - 1))
+
+                    print(
+                        f"Retrying in {delay} seconds..."
+                    )
+
+                    time.sleep(delay)
+
+                else:
+                    break
+
+            except Exception as exc:
+                print(
+                    f"Unexpected Gemini error: "
+                    f"{type(exc).__name__}: {exc}"
+                )
+                raise
+
+        print(
+            f"Model {model} failed after "
+            f"{MAX_RETRIES_PER_MODEL} attempts."
+        )
+
+        print(
+            "Trying fallback model..."
+        )
+
+    raise RuntimeError(
+        "All Gemini models failed."
+    ) from last_error
+
+
+# ============================================================
+# RESPONSE CLEANUP
+# ============================================================
+
+def clean_json_response(text):
+    """
+    Remove common Markdown code fencing accidentally returned
+    by the model.
+    """
 
     text = text.strip()
 
+    if text.startswith("```json"):
+        text = text[len("```json"):].strip()
+
+    elif text.startswith("```"):
+        text = text[3:].strip()
+
+    if text.endswith("```"):
+        text = text[:-3].strip()
+
+    return text
+
+
+# ============================================================
+# ARTICLE GENERATION
+# ============================================================
+
+def generate_article(topics, history):
+
+    prompt = build_prompt(
+        topics,
+        history
+    )
+
+    print("Generating article with Gemini...")
+
+    raw_text = generate_with_retry(prompt)
+
+    text = clean_json_response(raw_text)
+
     try:
         article = json.loads(text)
-    except json.JSONDecodeError:
 
-        print("Gemini returned invalid JSON:")
+    except json.JSONDecodeError as exc:
+
+        print(
+            "Gemini returned invalid JSON."
+        )
+
+        print(
+            "Raw response:"
+        )
+
         print(text)
 
-        raise
+        raise ValueError(
+            "Gemini response could not be parsed as JSON."
+        ) from exc
 
-    required = [
+    required_fields = [
         "title",
         "description",
         "tags",
         "body_markdown"
     ]
 
-    for field in required:
+    for field in required_fields:
 
         if field not in article:
             raise ValueError(
-                f"Missing required field: {field}"
+                f"Generated article is missing: {field}"
             )
 
     return article
 
 
 # ============================================================
-# VALIDATE
+# ARTICLE VALIDATION
 # ============================================================
 
 def validate_article(article):
 
-    title = article["title"].strip()
-    body = article["body_markdown"].strip()
-    tags = article["tags"]
+    if not isinstance(article, dict):
+        raise ValueError(
+            "Generated article is not an object."
+        )
+
+    title = article.get("title")
+
+    description = article.get("description")
+
+    tags = article.get("tags")
+
+    body = article.get("body_markdown")
+
+    if not isinstance(title, str):
+        raise ValueError(
+            "Article title must be a string."
+        )
+
+    if not isinstance(description, str):
+        raise ValueError(
+            "Article description must be a string."
+        )
+
+    if not isinstance(body, str):
+        raise ValueError(
+            "Article body must be a string."
+        )
+
+    if not isinstance(tags, list):
+        raise ValueError(
+            "Article tags must be an array."
+        )
+
+    title = title.strip()
+    description = description.strip()
+    body = body.strip()
 
     if len(title) < 10:
         raise ValueError(
             "Article title is suspiciously short."
         )
 
-    if len(body) < 1000:
+    if len(description) < 20:
         raise ValueError(
-            "Generated article is suspiciously short."
+            "Article description is suspiciously short."
         )
 
-    if not isinstance(tags, list):
+    if len(body) < MIN_ARTICLE_LENGTH:
         raise ValueError(
-            "Tags must be an array."
+            f"Article body is too short "
+            f"({len(body)} characters)."
         )
 
-    if len(tags) == 0:
+    # Keep maximum of five tags.
+    tags = tags[:5]
+
+    cleaned_tags = []
+
+    for tag in tags:
+
+        if not isinstance(tag, str):
+            continue
+
+        tag = tag.strip().lower()
+
+        # DEV.to-friendly tags only.
+        if not re.fullmatch(r"[a-z0-9]+", tag):
+            continue
+
+        if tag not in cleaned_tags:
+            cleaned_tags.append(tag)
+
+    if not cleaned_tags:
         raise ValueError(
-            "Article has no tags."
+            "Article has no valid DEV.to tags."
         )
 
-    if len(tags) > 5:
-        article["tags"] = tags[:5]
+    article["title"] = title
+    article["description"] = description
+    article["body_markdown"] = body
+    article["tags"] = cleaned_tags[:5]
 
+    print()
     print("Article validation passed.")
-
     print()
     print("TITLE:")
     print(title)
-
+    print()
+    print("DESCRIPTION:")
+    print(description)
     print()
     print("TAGS:")
     print(", ".join(article["tags"]))
+    print()
+    print(
+        f"BODY LENGTH: {len(body)} characters"
+    )
+
+
+# ============================================================
+# DUPLICATE CHECK
+# ============================================================
+
+def is_duplicate_title(title, history):
+
+    normalized_title = title.strip().lower()
+
+    for item in history:
+
+        previous_title = item.get(
+            "title",
+            ""
+        )
+
+        if (
+            isinstance(previous_title, str)
+            and previous_title.strip().lower()
+            == normalized_title
+        ):
+            return True
+
+    return False
 
 
 # ============================================================
@@ -479,8 +777,8 @@ def publish_article(article):
     if response.status_code not in (200, 201):
 
         print(
-            "DEV.to API error:",
-            response.status_code
+            f"DEV.to API error: "
+            f"{response.status_code}"
         )
 
         print(response.text)
@@ -493,12 +791,19 @@ def publish_article(article):
     print("========================================")
     print("ARTICLE PUBLISHED")
     print("========================================")
+
     print(
         f"Title: {result.get('title')}"
     )
+
     print(
         f"URL:   {result.get('url')}"
     )
+
+    print(
+        f"ID:    {result.get('id')}"
+    )
+
     print("========================================")
 
     return result
@@ -510,34 +815,137 @@ def publish_article(article):
 
 def main():
 
+    print(
+        "========================================"
+    )
+
+    print(
+        "      DAILY DEV.TO AUTO PUBLISHER"
+    )
+
+    print(
+        "========================================"
+    )
+
+    print()
+
+    # --------------------------------------------------------
+    # Load history
+    # --------------------------------------------------------
+
     history = load_history()
+
+    # --------------------------------------------------------
+    # Get current DEV.to trends
+    # --------------------------------------------------------
 
     articles = get_trending_articles()
 
-    topics = prepare_topics(articles)
+    if not articles:
+        raise RuntimeError(
+            "DEV.to returned no rising articles."
+        )
+
+    topics = prepare_topics(
+        articles
+    )
+
+    # --------------------------------------------------------
+    # Generate article
+    # --------------------------------------------------------
 
     article = generate_article(
         topics,
         history
     )
 
-    validate_article(article)
+    # --------------------------------------------------------
+    # Validate article
+    # --------------------------------------------------------
 
-    result = publish_article(article)
+    validate_article(
+        article
+    )
 
-    # Save topic history AFTER successful publishing
+    # --------------------------------------------------------
+    # Avoid exact duplicate titles
+    # --------------------------------------------------------
 
-    history.append({
-        "title": article["title"],
-        "tags": article["tags"],
-        "url": result.get("url")
-    })
+    if is_duplicate_title(
+        article["title"],
+        history
+    ):
+        raise RuntimeError(
+            "Generated article title already exists "
+            "in topic history. Refusing to publish."
+        )
 
-    save_history(history)
+    # --------------------------------------------------------
+    # Publish
+    # --------------------------------------------------------
+
+    result = publish_article(
+        article
+    )
+
+    # --------------------------------------------------------
+    # Save history ONLY after successful publish
+    # --------------------------------------------------------
+
+    history.append(
+        {
+            "title": article["title"],
+            "tags": article["tags"],
+            "url": result.get("url"),
+            "devto_id": result.get("id"),
+        }
+    )
+
+    save_history(
+        history
+    )
 
     print()
-    print("Topic history updated.")
+    print(
+        "Topic history updated successfully."
+    )
 
+    print(
+        "Daily DEV.to publishing completed."
+    )
+
+
+# ============================================================
+# ENTRY POINT
+# ============================================================
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+
+    except KeyboardInterrupt:
+        print()
+        print(
+            "Execution interrupted."
+        )
+        sys.exit(130)
+
+    except Exception as exc:
+        print()
+        print(
+            "========================================"
+        )
+        print(
+            "WORKFLOW FAILED"
+        )
+        print(
+            "========================================"
+        )
+        print(
+            f"{type(exc).__name__}: {exc}"
+        )
+        print(
+            "========================================"
+        )
+
+        sys.exit(1)
