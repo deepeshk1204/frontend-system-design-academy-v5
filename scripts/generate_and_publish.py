@@ -64,10 +64,13 @@ def load_history():
         if isinstance(data, list):
             return data
 
-    except Exception as e:
-        print(f"Could not read topic history: {e}")
+        print("Topic history is not a JSON array. Starting fresh.")
+        return []
 
-    return []
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"Could not read topic history: {e}")
+        print("Starting with empty topic history.")
+        return []
 
 
 def save_history(history):
@@ -348,12 +351,12 @@ Return ONLY valid JSON.
 
 Use exactly this structure:
 
-{
+{{
   "title": "...",
   "description": "...",
   "tags": ["...", "...", "..."],
   "body_markdown": "..."
-}
+}}
 """
 
     print("Generating article with Gemini...")
